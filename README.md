@@ -1,6 +1,6 @@
 ## Welcome to GitHub Pages
 
-[Assignment 1](http://cppeters.github.io/cppeters/assignment1.html)
+[Assignment 1](https://github.com/cppeters/Computational-Worlds/assigment1.html)
 
 
 You can use the [editor on GitHub](https://github.com/cppeters/Computational-Worlds/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
