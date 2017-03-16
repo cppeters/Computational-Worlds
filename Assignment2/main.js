@@ -112,21 +112,29 @@ Luigi.prototype.update = function () {
         var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
         this.y = this.ground - height;
     }
-    if ((this.count += 1) % 100 === 0) this.jumping = true;
-    this.x += this.game.clockTick * this.speed;
-    if (this.x > 1200) this.x = -230;
+    //if ((this.count += 1) % 100 === 0) this.jumping = true;
+    //this.x += this.game.clockTick * this.speed;
+    //if (this.x > 1200) this.x = -230;
     Entity.prototype.update.call(this);
 }
 
 // Enemies
-function Goomba(game) {
+function Goomba(game, startX) {
     this.animation = new Animation(AM.getAsset("./img/enemies.png"), 0, 0, 16, 40, 0.1, 2, true, true);
     this.splat = new Animation(AM.getAsset("./img/enemies.png"), 32, 0, 16, 40, 1.25, 1, false, true);
     this.dead = false;
-    this.radius = 50;
-    this.speed = 50;
+    this.radius = 20;
     this.count = 0;
-    Entity.call(this, game, 200, 530);
+    this.collide_count = 0;
+    this.velocity = { x: Math.random() * 100, y: Math.random() * 100 };
+    var speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+    if (speed > maxSpeed) {
+        var ratio = maxSpeed / speed;
+        this.velocity.x *= ratio;
+    };
+    // Set left or right start
+    if (Math.random() < 0.5) this.velocity.x = -this.velocity.x;
+    Entity.call(this, game, startX, 530);
 }
 
 Goomba.prototype = new Entity();
@@ -143,20 +151,69 @@ Goomba.prototype.draw = function (ctx) {
 }
 
 Goomba.prototype.update = function () {
+    Entity.prototype.update.call(this);
     if (this.dead) {
         if (this.splat.isDone()) {
             this.splat.elapsedTime = 0;
             this.dead = false;
         }
-        this.speed = 0;
     }
-    else this.speed = 50;
-    if ((this.count += 1) % 200 === 0) this.dead = true;
-    this.x += this.game.clockTick * this.speed;
-    if (this.x > 1200) this.x = -230;
-    Entity.prototype.update.call(this);
+    else {
+        this.x += this.velocity.x * this.game.clockTick;
+
+        if (this.collideLeft() || this.collideRight()) {
+            this.velocity.x = -this.velocity.x;
+        }
+
+        for (var i = 0; i < this.game.entities.length; i++) {
+            var ent = this.game.entities[i];
+            if (this != ent && this.collide(ent)) {
+                this.collide_count++;
+                if (this.collide_count > 500) {
+                    this.dead = true;
+                    this.collide_count = 0;
+                    break;
+                }
+                var temp = this.velocity;
+                this.velocity = ent.velocity;
+                ent.velocity = temp;
+            };
+        };
+        if (!this.dead) {
+            for (var i = 0; i < this.game.entities.length; i++) {
+                var ent = this.game.entities[i];
+                if (this != ent) {
+                    var dist = distance(this, ent);
+                    var difX = (ent.x - this.x) / dist;
+                    var difY = (ent.y - this.y) / dist;
+                    this.velocity.x += difX / (dist * dist) * acceleration;
+
+                    var speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                    if (speed > maxSpeed) {
+                        var ratio = maxSpeed / speed;
+                        this.velocity.x *= ratio;
+                    };
+                };
+            }
+
+            this.velocity.x -= (1 - friction) * this.game.clockTick * this.velocity.x;
+        }
+    }
 }
 
+Goomba.prototype.collideRight = function () {
+    return this.x + this.radius > 984;
+}
+
+Goomba.prototype.collideLeft = function () {
+    return this.x - this.radius < 147;
+}
+
+Goomba.prototype.collide = function (other) {
+    return distance(this, other) < this.radius + other.radius;
+}
+
+// Plant
 function Plant(game) {
     this.animation = new Animation(AM.getAsset("./img/enemies.png"), 192, 70, 16, 30, 0.5, 2, true, true);
     this.radius = 50;
@@ -175,6 +232,9 @@ Plant.prototype.update = function () {
     Entity.prototype.update.call(this);
 }
 
+var friction = 1;
+var acceleration = 10000;
+var maxSpeed = 200;
 
 // the "main" code begins here
 
@@ -191,15 +251,29 @@ AM.downloadAll(function () {
     var gameEngine = new GameEngine();
     var bg = new Background(gameEngine);
     var luigi = new Luigi(gameEngine);
-    var goomba = new Goomba(gameEngine);
     var plant = new Plant(gameEngine);
 
     gameEngine.addEntity(new Background(gameEngine, AM.getAsset("./img/background.png")));
-    gameEngine.addEntity(luigi);
-    gameEngine.addEntity(goomba);
+    //gameEngine.addEntity(luigi);
     gameEngine.addEntity(plant);
  
+    for (var i = 0; i < 20; i++) {
+        var randomStart = getRandom(150, 900);
+        var goomba = new Goomba(gameEngine, randomStart);
+        gameEngine.addEntity(goomba);
+    }
+
     gameEngine.init(ctx);
     gameEngine.start();
     console.log("All Done!");
 });
+
+function distance(a, b) {
+    var difX = a.x - b.x;
+    var difY = a.y - b.y;
+    return Math.sqrt(difX * difX + difY * difY);
+};
+
+function getRandom(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
