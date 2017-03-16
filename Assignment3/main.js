@@ -125,7 +125,7 @@ function Goomba(game, startX, goombaNum) {
     this.dead = false;
     this.radius = 20;
     this.count = 0;
-    this.goomba = goombaNum;
+    this.goombaNum = goombaNum;
     this.collide_count = 0;
     this.velocity = { x: Math.random() * 100, y: Math.random() * 100 };
     var speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
@@ -216,13 +216,13 @@ Goomba.prototype.collide = function (other) {
 
 Goomba.prototype.save = function() {
     return {
+            num: this.goombaNum,
             x: this.x, 
             y: this.y, 
             dead: this.dead, 
             count: this.count,
             collide_count: this.collide_count,
-            velocity: this.velocity,
-            goombaNum: this.goombaNum
+            velocity_x: this.velocity.x
             };
 }
 
@@ -232,7 +232,7 @@ Goomba.prototype.load = function(goomba) {
     this.dead = goomba.dead;
     this.count = goomba.count;
     this.collide_count = goomba.collide_count;
-    this.velocity = goomba.velocity;
+    this.velocity.x = goomba.velocity_x;
 }
 
 // Plant
@@ -306,14 +306,12 @@ AM.downloadAll(function () {
     gameEngine.start();
 
     socket.on("load", function (data) {
-        console.log(data);
-        console.log(data.data);
         for (var i = 0; i < data.data.entityList.length; i++) {
             restore = data.data.entityList[i];
             for (var j = 0; j < gameEngine.entities.length; j++) {
                 entity = gameEngine.entities[j];
                 if (entity instanceof Goomba) {
-                    if (restore.goombaNum === entity.goombaNum) {
+                    if (restore.num === entity.goombaNum) {
                         entity.load(restore);
                     }
                 }
