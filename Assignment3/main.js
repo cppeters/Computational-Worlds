@@ -258,7 +258,7 @@ var friction = 1;
 var acceleration = 10000;
 var maxSpeed = 200;
 
-var socket = io.connect("https://76.28.150.193:8888");
+var socket = io.connect("http://76.28.150.193:8888");
 
 socket.on("connect", function () {
     console.log("Socket connected.")
