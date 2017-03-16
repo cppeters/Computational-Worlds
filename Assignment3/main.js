@@ -119,12 +119,13 @@ Luigi.prototype.update = function () {
 }
 
 // Enemies
-function Goomba(game, startX) {
+function Goomba(game, startX, goombaNum) {
     this.animation = new Animation(AM.getAsset("./img/enemies.png"), 0, 0, 16, 40, 0.1, 2, true, true);
     this.splat = new Animation(AM.getAsset("./img/enemies.png"), 32, 0, 16, 40, 1.25, 1, false, true);
     this.dead = false;
     this.radius = 20;
     this.count = 0;
+    this.goomba = goombaNum;
     this.collide_count = 0;
     this.velocity = { x: Math.random() * 100, y: Math.random() * 100 };
     var speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
@@ -213,6 +214,27 @@ Goomba.prototype.collide = function (other) {
     return distance(this, other) < this.radius + other.radius;
 }
 
+Goomba.prototype.save = function() {
+    return {
+            x: this.x, 
+            y: this.y, 
+            dead: this.dead, 
+            count: this.count,
+            collide_count: this.collide_count,
+            velocity: this.velocity,
+            goombaNum: this.goombaNum
+            };
+}
+
+Goomba.prototype.load = function(goomba) {
+    this.x = goomba.x;
+    this.y = goomba.y;
+    this.dead = goomba.dead;
+    this.count = goomba.count;
+    this.collide_count = goomba.collide_count;
+    this.velocity = goomba.velocity;
+}
+
 // Plant
 function Plant(game) {
     this.animation = new Animation(AM.getAsset("./img/enemies.png"), 192, 70, 16, 30, 0.5, 2, true, true);
@@ -235,6 +257,23 @@ Plant.prototype.update = function () {
 var friction = 1;
 var acceleration = 10000;
 var maxSpeed = 200;
+
+var socket = io.connect("http://76.28.150.193:8888");
+
+socket.on("connect", function () {
+    console.log("Socket connected.")
+});
+
+socket.on("disconnect", function () {
+    console.log("Socket disconnected.")
+});
+
+socket.on("reconnect", function () {
+    console.log("Socket reconnected.")
+});
+
+
+
 
 // the "main" code begins here
 
@@ -259,12 +298,28 @@ AM.downloadAll(function () {
  
     for (var i = 0; i < 20; i++) {
         var randomStart = getRandom(150, 900);
-        var goomba = new Goomba(gameEngine, randomStart);
+        var goomba = new Goomba(gameEngine, randomStart, i);
         gameEngine.addEntity(goomba);
     }
 
     gameEngine.init(ctx);
     gameEngine.start();
+
+    socket.on("load", function (data) {
+        console.log(data);
+        console.log(data.data);
+        for (var i = 0; i < data.data.entityList.length; i++) {
+            restore = data.data.entityList[i];
+            for (var j = 0; j < gameEngine.entities.length; j++) {
+                entity = gameEngine.entities[j];
+                if (entity instanceof Goomba) {
+                    if (restore.goombaNum === entity.goombaNum) {
+                        entity.load(restore);
+                    }
+                }
+            }
+        }
+    });
     console.log("All Done!");
 });
 

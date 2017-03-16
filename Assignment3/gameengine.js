@@ -55,14 +55,14 @@ GameEngine.prototype.startInput = function () {
 
     this.ctx.canvas.addEventListener("click", function (e) {
         that.click = getXandY(e);
-        console.log(e);
-        console.log("Left Click Event - X,Y " + e.clientX + ", " + e.clientY);
+        /*console.log(e);
+        console.log("Left Click Event - X,Y " + e.clientX + ", " + e.clientY);*/
     }, false);
 
     this.ctx.canvas.addEventListener("contextmenu", function (e) {
         that.click = getXandY(e);
-        console.log(e);
-        console.log("Right Click Event - X,Y " + e.clientX + ", " + e.clientY);
+        /*console.log(e);
+        console.log("Right Click Event - X,Y " + e.clientX + ", " + e.clientY);*/
         e.preventDefault();
     }, false);
 
@@ -72,27 +72,37 @@ GameEngine.prototype.startInput = function () {
     }, false);
 
     this.ctx.canvas.addEventListener("mousewheel", function (e) {
-        console.log(e);
+        //console.log(e);
         that.wheel = e;
-        console.log("Click Event - X,Y " + e.clientX + ", " + e.clientY + " Delta " + e.deltaY);
+        //console.log("Click Event - X,Y " + e.clientX + ", " + e.clientY + " Delta " + e.deltaY);
     }, false);
 
     this.ctx.canvas.addEventListener("keydown", function (e) {
-        console.log(e);
-        console.log("Key Down Event - Char " + e.code + " Code " + e.keyCode);
+        /*console.log(e);
+        console.log("Key Down Event - Char " + e.code + " Code " + e.keyCode);*/
     }, false);
 
     this.ctx.canvas.addEventListener("keypress", function (e) {
-        if (e.code === "KeyD") that.d = true;
         if (e.code === "Space") that.space = true;
-        console.log(e);
-        console.log("Key Pressed Event - Char " + e.charCode + " Code " + e.keyCode);
+        if (e.code === "KeyS") {
+            that.KeyS = true;
+            that.saveGame();
+        }
+        if (e.code === "KeyL") {
+            that.KeyL = true;
+            that.loadGame();
+        }
+
+        /*console.log(e);
+        console.log("Key Pressed Event - Char " + e.charCode + " Code " + e.keyCode);*/
     }, false);
 
     this.ctx.canvas.addEventListener("keyup", function (e) {
         if (e.code === "Space") that.space = false;
-        console.log(e);
-        console.log("Key Up Event - Char " + e.code + " Code " + e.keyCode);
+        if (e.code === "KeyS") that.KeyS = false;
+        if (e.code === "KeyL") that.KeyL = false;
+        /*console.log(e);
+        console.log("Key Up Event - Char " + e.code + " Code " + e.keyCode);*/
     }, false);
 
     console.log('Input started');
@@ -179,4 +189,25 @@ Entity.prototype.rotateAndCache = function (image, angle) {
     //offscreenCtx.strokeStyle = "red";
     //offscreenCtx.strokeRect(0,0,size,size);
     return offscreenCanvas;
+}
+
+GameEngine.prototype.saveGame = function () {
+    console.log("Save");
+    var saveObject = {
+        entityList: []
+    };
+    var entitiesCount = this.entities.length;
+
+    for (var i = 0; i < entitiesCount; i++) {
+        var entity = this.entities[i];
+        if (entity instanceof Goomba) {
+            saveObject.entityList.push(entity.save());
+        }
+    }
+    socket.emit("save", { studentname: "Casey Peterson", statename: "game", data: saveObject });
+}
+
+GameEngine.prototype.loadGame = function () {
+    console.log("Load");
+    socket.emit("load", { studentname: "Casey Peterson", statename: "game" });
 }
