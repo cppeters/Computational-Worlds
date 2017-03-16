@@ -1,35 +1,47 @@
-var AM = new AssetManager();
-
-function Animation(spriteSheet, frameWidth, frameHeight, sheetWidth, frameDuration, frames, loop, scale) {
+function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse) {
     this.spriteSheet = spriteSheet;
+    this.startX = startX;
+    this.startY = startY;
     this.frameWidth = frameWidth;
     this.frameDuration = frameDuration;
     this.frameHeight = frameHeight;
-    this.sheetWidth = sheetWidth;
     this.frames = frames;
     this.totalTime = frameDuration * frames;
     this.elapsedTime = 0;
     this.loop = loop;
-    this.scale = scale;
+    this.reverse = reverse;
 }
 
-Animation.prototype.drawFrame = function (tick, ctx, x, y) {
+Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
+    var scaleBy = scaleBy || 1;
     this.elapsedTime += tick;
-    if (this.isDone()) {
-        if (this.loop) this.elapsedTime = 0;
+    if (this.loop) {
+        if (this.isDone()) {
+            this.elapsedTime = 0;
+        }
+    } else if (this.isDone()) {
+        return;
     }
-    var frame = this.currentFrame();
-    var xindex = 0;
-    var yindex = 0;
-    xindex = frame % this.sheetWidth;
-    yindex = Math.floor(frame / this.sheetWidth);
+    var index = this.reverse ? this.frames - this.currentFrame() - 1 : this.currentFrame();
+    var vindex = 0;
+    if ((index + 1) * this.frameWidth + this.startX > this.spriteSheet.width) {
+        index -= Math.floor((this.spriteSheet.width - this.startX) / this.frameWidth);
+        vindex++;
+    }
+    while ((index + 1) * this.frameWidth > this.spriteSheet.width) {
+        index -= Math.floor(this.spriteSheet.width / this.frameWidth);
+        vindex++;
+    }
 
+    var locX = x;
+    var locY = y;
+    var offset = vindex === 0 ? this.startX : 0;
     ctx.drawImage(this.spriteSheet,
-                 xindex * this.frameWidth, yindex * this.frameHeight,  // source from sheet
-                 this.frameWidth, this.frameHeight,
-                 x, y,
-                 this.frameWidth * this.scale,
-                 this.frameHeight * this.scale);
+                  index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
+                  this.frameWidth, this.frameHeight,
+                  locX, locY,
+                  this.frameWidth * scaleBy,
+                  this.frameHeight * scaleBy);
 }
 
 Animation.prototype.currentFrame = function () {
@@ -39,8 +51,7 @@ Animation.prototype.currentFrame = function () {
 Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
-
-// no inheritance
+/*
 function Background(game, spritesheet) {
     this.x = 0;
     this.y = 0;
@@ -50,91 +61,136 @@ function Background(game, spritesheet) {
 };
 
 Background.prototype.draw = function () {
-    /*this.ctx.drawImage(this.spritesheet,
-                   this.x, this.y);*/
     this.ctx.drawImage(this.spritesheet, 1845, 5, 325, 220, this.x, this.y,
         this.ctx.canvas.width, this.ctx.canvas.height);
 };
 
 Background.prototype.update = function () {
-};
+};*/
 
-function MushroomDude(game, spritesheet) {
-    this.animation = new Animation(spritesheet, 189, 230, 5, 0.10, 14, true, 1);
-    this.x = 0;
-    this.y = 0;
-    this.speed = 100;
-    this.game = game;
-    this.ctx = game.ctx;
+function Background(game, spritesheet) {
+    this.spritesheet = spritesheet;
+    Entity.call(this, game, 0, 0);
+    this.radius = 200;
 }
 
-MushroomDude.prototype.draw = function () {
-    this.animation.drawFrame(this.game.clockTick, this.ctx, this.x, this.y);
+Background.prototype = new Entity();
+Background.prototype.constructor = Background;
+
+Background.prototype.update = function () {
 }
 
-MushroomDude.prototype.update = function () {
-    if (this.animation.elapsedTime < this.animation.totalTime * 8 / 14)
-        this.x += this.game.clockTick * this.speed;
-    if (this.x > 800) this.x = -230;
-}
-
-
-// inheritance 
-function Cheetah(game, spritesheet) {
-    this.animation = new Animation(spritesheet, 512, 256, 2, 0.05, 8, true, 0.5);
-    this.speed = 350;
-    this.ctx = game.ctx;
-    Entity.call(this, game, 0, 250);
-}
-
-Cheetah.prototype = new Entity();
-Cheetah.prototype.constructor = Cheetah;
-
-Cheetah.prototype.update = function () {
-    this.x += this.game.clockTick * this.speed;
-    if (this.x > 800) this.x = -230;
-    Entity.prototype.update.call(this);
-}
-
-Cheetah.prototype.draw = function () {
-    this.animation.drawFrame(this.game.clockTick, this.ctx, this.x, this.y);
+Background.prototype.draw = function (ctx) {
+    ctx.drawImage(this.spritesheet, 1845, 5, 325, 220, this.x, this.y,
+        ctx.canvas.width, ctx.canvas.height);
     Entity.prototype.draw.call(this);
 }
 
-// inheritance 
-function Guy(game, spritesheet) {
-    this.animation = new Animation(spritesheet, 154, 215, 4, 0.15, 8, true, 0.5);
-    this.speed = 100;
-    this.ctx = game.ctx;
-    Entity.call(this, game, 0, 450);
+function Luigi(game) {
+    this.animation = new Animation(AM.getAsset("./img/characters.png"), 78, 63, 18, 40, 0.1, 4, true, true);
+    this.jumpAnimation = new Animation(AM.getAsset("./img/characters.png"), 360, 64, 16, 40, 0.1, 5, false, true);
+    this.jumping = false;
+    this.radius = 50;
+    this.ground = 592;
+    this.speed = 50;
+    Entity.call(this, game, 200, 592);
 }
 
-Guy.prototype = new Entity();
-Guy.prototype.constructor = Guy;
+Luigi.prototype = new Entity();
+Luigi.prototype.constructor = Luigi;
 
-Guy.prototype.update = function () {
-    this.x += this.game.clockTick * this.speed;
-    if (this.x > 800) this.x = -230;
-    Entity.prototype.update.call(this);
-}
-
-Guy.prototype.draw = function () {
-    this.animation.drawFrame(this.game.clockTick, this.ctx, this.x, this.y);
+Luigi.prototype.draw = function (ctx) {
+     if (this.jumping) {
+        this.jumpAnimation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34);
+    }
+    else {
+        this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
+    }
     Entity.prototype.draw.call(this);
 }
 
+Luigi.prototype.update = function () {
+    if (this.game.space) this.jumping = true;
+    if (this.jumping) {
+        if (this.jumpAnimation.isDone()) {
+            this.jumpAnimation.elapsedTime = 0;
+            this.jumping = false;
+        }
+        var jumpDistance = this.jumpAnimation.elapsedTime / this.jumpAnimation.totalTime;
+        var totalHeight = 20;
 
+        if (jumpDistance > 0.5)
+            jumpDistance = 1 - jumpDistance;
+
+        //var height = jumpDistance * 2 * totalHeight;
+        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
+        this.y = this.ground - height;
+    }
+    Entity.prototype.update.call(this);
+}
+
+/*function Unicorn(game) {
+    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/RobotUnicorn.png"), 0, 0, 206, 110, 0.02, 30, true, true);
+    this.jumpAnimation = new Animation(ASSET_MANAGER.getAsset("./img/RobotUnicorn.png"), 618, 334, 174, 138, 0.02, 40, false, true);
+    this.jumping = false;
+    this.radius = 100;
+    this.ground = 400;
+    Entity.call(this, game, 0, 400);
+}
+
+Unicorn.prototype = new Entity();
+Unicorn.prototype.constructor = Unicorn;
+
+Unicorn.prototype.update = function () {
+    if (this.game.space) this.jumping = true;
+    if (this.jumping) {
+        if (this.jumpAnimation.isDone()) {
+            this.jumpAnimation.elapsedTime = 0;
+            this.jumping = false;
+        }
+        var jumpDistance = this.jumpAnimation.elapsedTime / this.jumpAnimation.totalTime;
+        var totalHeight = 200;
+
+        if (jumpDistance > 0.5)
+            jumpDistance = 1 - jumpDistance;
+
+        //var height = jumpDistance * 2 * totalHeight;
+        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
+        this.y = this.ground - height;
+    }
+    Entity.prototype.update.call(this);
+}
+
+Unicorn.prototype.draw = function (ctx) {
+    if (this.jumping) {
+        this.jumpAnimation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34);
+    }
+    else {
+        this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
+    }
+    Entity.prototype.draw.call(this);
+}*/
+
+// the "main" code begins here
+
+var AM = new AssetManager();
+
+//AM.queueDownload("./img/RobotUnicorn.png");
 AM.queueDownload("./img/background.png");
+AM.queueDownload("./img/characters.png");
 
 AM.downloadAll(function () {
-    var canvas = document.getElementById("gameWorld");
-    var ctx = canvas.getContext("2d");
+    var canvas = document.getElementById('gameWorld');
+    var ctx = canvas.getContext('2d');
 
     var gameEngine = new GameEngine();
-    gameEngine.init(ctx);
-    gameEngine.start();
+    var bg = new Background(gameEngine);
+    var luigi = new Luigi(gameEngine);
 
     gameEngine.addEntity(new Background(gameEngine, AM.getAsset("./img/background.png")));
-
+    gameEngine.addEntity(luigi);
+ 
+    gameEngine.init(ctx);
+    gameEngine.start();
     console.log("All Done!");
 });

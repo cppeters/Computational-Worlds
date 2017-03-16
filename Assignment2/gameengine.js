@@ -84,12 +84,13 @@ GameEngine.prototype.startInput = function () {
 
     this.ctx.canvas.addEventListener("keypress", function (e) {
         if (e.code === "KeyD") that.d = true;
-        that.chars[e.code] = true;
+        if (e.code === "Space") that.space = true;
         console.log(e);
         console.log("Key Pressed Event - Char " + e.charCode + " Code " + e.keyCode);
     }, false);
 
     this.ctx.canvas.addEventListener("keyup", function (e) {
+        if (e.code === "Space") that.space = false;
         console.log(e);
         console.log("Key Up Event - Char " + e.code + " Code " + e.keyCode);
     }, false);
