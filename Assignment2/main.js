@@ -14,6 +14,7 @@ function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDu
 
 Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
     var scaleBy = scaleBy || 1;
+    scaleBy = 3;
     this.elapsedTime += tick;
     if (this.loop) {
         if (this.isDone()) {
@@ -51,22 +52,6 @@ Animation.prototype.currentFrame = function () {
 Animation.prototype.isDone = function () {
     return (this.elapsedTime >= this.totalTime);
 }
-/*
-function Background(game, spritesheet) {
-    this.x = 0;
-    this.y = 0;
-    this.spritesheet = spritesheet;
-    this.game = game;
-    this.ctx = game.ctx;
-};
-
-Background.prototype.draw = function () {
-    this.ctx.drawImage(this.spritesheet, 1845, 5, 325, 220, this.x, this.y,
-        this.ctx.canvas.width, this.ctx.canvas.height);
-};
-
-Background.prototype.update = function () {
-};*/
 
 function Background(game, spritesheet) {
     this.spritesheet = spritesheet;
@@ -87,13 +72,14 @@ Background.prototype.draw = function (ctx) {
 }
 
 function Luigi(game) {
-    this.animation = new Animation(AM.getAsset("./img/characters.png"), 78, 63, 18, 40, 0.1, 4, true, true);
-    this.jumpAnimation = new Animation(AM.getAsset("./img/characters.png"), 360, 64, 16, 40, 0.1, 5, false, true);
+    this.animation = new Animation(AM.getAsset("./img/characters.png"), 80, 64, 17, 38, 0.1, 4, true, true);
+    this.jumpAnimation = new Animation(AM.getAsset("./img/characters.png"), 356, 64, 18, 40, 0.15, 5, false, true);
     this.jumping = false;
     this.radius = 50;
-    this.ground = 592;
-    this.speed = 50;
-    Entity.call(this, game, 200, 592);
+    this.ground = 530;
+    this.speed = 100;
+    this.count = 0;
+    Entity.call(this, game, 200, 530);
 }
 
 Luigi.prototype = new Entity();
@@ -117,38 +103,6 @@ Luigi.prototype.update = function () {
             this.jumping = false;
         }
         var jumpDistance = this.jumpAnimation.elapsedTime / this.jumpAnimation.totalTime;
-        var totalHeight = 20;
-
-        if (jumpDistance > 0.5)
-            jumpDistance = 1 - jumpDistance;
-
-        //var height = jumpDistance * 2 * totalHeight;
-        var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
-        this.y = this.ground - height;
-    }
-    Entity.prototype.update.call(this);
-}
-
-/*function Unicorn(game) {
-    this.animation = new Animation(ASSET_MANAGER.getAsset("./img/RobotUnicorn.png"), 0, 0, 206, 110, 0.02, 30, true, true);
-    this.jumpAnimation = new Animation(ASSET_MANAGER.getAsset("./img/RobotUnicorn.png"), 618, 334, 174, 138, 0.02, 40, false, true);
-    this.jumping = false;
-    this.radius = 100;
-    this.ground = 400;
-    Entity.call(this, game, 0, 400);
-}
-
-Unicorn.prototype = new Entity();
-Unicorn.prototype.constructor = Unicorn;
-
-Unicorn.prototype.update = function () {
-    if (this.game.space) this.jumping = true;
-    if (this.jumping) {
-        if (this.jumpAnimation.isDone()) {
-            this.jumpAnimation.elapsedTime = 0;
-            this.jumping = false;
-        }
-        var jumpDistance = this.jumpAnimation.elapsedTime / this.jumpAnimation.totalTime;
         var totalHeight = 200;
 
         if (jumpDistance > 0.5)
@@ -158,26 +112,77 @@ Unicorn.prototype.update = function () {
         var height = totalHeight*(-4 * (jumpDistance * jumpDistance - jumpDistance));
         this.y = this.ground - height;
     }
+    if ((this.count += 1) % 100 === 0) this.jumping = true;
+    this.x += this.game.clockTick * this.speed;
+    if (this.x > 1200) this.x = -230;
     Entity.prototype.update.call(this);
 }
 
-Unicorn.prototype.draw = function (ctx) {
-    if (this.jumping) {
-        this.jumpAnimation.drawFrame(this.game.clockTick, ctx, this.x + 17, this.y - 34);
+// Enemies
+function Goomba(game) {
+    this.animation = new Animation(AM.getAsset("./img/enemies.png"), 0, 0, 16, 40, 0.1, 2, true, true);
+    this.splat = new Animation(AM.getAsset("./img/enemies.png"), 32, 0, 16, 40, 1.25, 1, false, true);
+    this.dead = false;
+    this.radius = 50;
+    this.speed = 50;
+    this.count = 0;
+    Entity.call(this, game, 200, 530);
+}
+
+Goomba.prototype = new Entity();
+Goomba.prototype.constructor = Goomba;
+
+Goomba.prototype.draw = function (ctx) {
+    if (this.dead) {
+        this.splat.drawFrame(this.game.clockTick, ctx, this.x, this.y);
     }
     else {
         this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
     }
     Entity.prototype.draw.call(this);
-}*/
+}
+
+Goomba.prototype.update = function () {
+    if (this.dead) {
+        if (this.splat.isDone()) {
+            this.splat.elapsedTime = 0;
+            this.dead = false;
+        }
+        this.speed = 0;
+    }
+    else this.speed = 50;
+    if ((this.count += 1) % 200 === 0) this.dead = true;
+    this.x += this.game.clockTick * this.speed;
+    if (this.x > 1200) this.x = -230;
+    Entity.prototype.update.call(this);
+}
+
+function Plant(game) {
+    this.animation = new Animation(AM.getAsset("./img/enemies.png"), 192, 70, 16, 30, 0.5, 2, true, true);
+    this.radius = 50;
+    Entity.call(this, game, 1040, 348);
+}
+
+Plant.prototype = new Entity();
+Plant.prototype.constructor = Goomba;
+
+Plant.prototype.draw = function (ctx) {
+    this.animation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
+    Entity.prototype.draw.call(this);
+}
+
+Plant.prototype.update = function () {
+    Entity.prototype.update.call(this);
+}
+
 
 // the "main" code begins here
 
 var AM = new AssetManager();
 
-//AM.queueDownload("./img/RobotUnicorn.png");
 AM.queueDownload("./img/background.png");
 AM.queueDownload("./img/characters.png");
+AM.queueDownload("./img/enemies.png");
 
 AM.downloadAll(function () {
     var canvas = document.getElementById('gameWorld');
@@ -186,9 +191,13 @@ AM.downloadAll(function () {
     var gameEngine = new GameEngine();
     var bg = new Background(gameEngine);
     var luigi = new Luigi(gameEngine);
+    var goomba = new Goomba(gameEngine);
+    var plant = new Plant(gameEngine);
 
     gameEngine.addEntity(new Background(gameEngine, AM.getAsset("./img/background.png")));
     gameEngine.addEntity(luigi);
+    gameEngine.addEntity(goomba);
+    gameEngine.addEntity(plant);
  
     gameEngine.init(ctx);
     gameEngine.start();
