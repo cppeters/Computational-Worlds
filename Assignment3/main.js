@@ -302,6 +302,30 @@ AM.downloadAll(function () {
         gameEngine.addEntity(goomba);
     }
 
+    document.getElementById("Save").addEventListener('click',function ()
+    {
+        console.log("Save");
+        var saveObject = {
+            entityList: []
+        };
+        var entitiesCount = gameEngine.entities.length;
+
+        for (var i = 0; i < entitiesCount; i++) {
+            var entity = gameEngine.entities[i];
+            if (entity instanceof Goomba) {
+                saveObject.entityList.push(entity.save());
+            }
+        }
+        socket.emit("save", { studentname: "Casey Peterson", statename: "game", data: saveObject });
+       
+    });
+
+    document.getElementById("Load").addEventListener('click',function ()
+    {
+        console.log("Load");
+        socket.emit("load", { studentname: "Casey Peterson", statename: "game" });
+    });
+
     gameEngine.init(ctx);
     gameEngine.start();
 
